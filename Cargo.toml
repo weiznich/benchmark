@@ -5,10 +5,12 @@ name = "test"
 version = "0.1.0"
 authors = ["Sanpi <sanpi@homecomputing.fr>"]
 edition = "2018"
+autobenches = false
 
 [dependencies]
 async-std = "1.5"
 chrono = "0.4"
+criterion = "0.3"
 
 [dependencies.libpq]
 version = "0.7"
@@ -25,7 +27,9 @@ features = ["with-chrono-0_4"]
 optional = true
 
 [dependencies.diesel]
-version = "1.4"
+#version = "1.4"
+path = "/home/weiznich/Dokumente/rust/diesel/diesel"
+#git = "https://github.com/diesel-rs/diesel"
 features = ["postgres", "chrono"]
 optional = true
 
@@ -41,3 +45,14 @@ optional = true
 
 [features]
 default = ["diesel", "elephantry", "sqlx", "postgres", "libpq"]
+
+[profile.release]
+debug = true
+
+[[bench]]
+name = "sql_benchs"
+harness = false
+path = "benches/lib.rs"
+
+[profile.bench]
+debug = true

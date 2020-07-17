@@ -44,22 +44,52 @@ impl crate::Client for sqlx::PgConnection {
 
     fn fetch_all(&mut self) -> Result<Vec<Self::Entity>, Self::Error> {
         async_std::task::block_on({
-            sqlx::query_as::<_, User>("SELECT id, name, hair_color, created_at FROM users").fetch_all(self)
+            sqlx::query_as::<_, User>("SELECT id, name, hair_color, created_at FROM users")
+                .fetch_all(self)
         })
     }
 
     fn fetch_first(&mut self) -> Result<Self::Entity, Self::Error> {
         async_std::task::block_on({
-            sqlx::query_as::<_, User>("SELECT id, name, hair_color, created_at FROM users").fetch_one(self)
+            sqlx::query_as::<_, User>("SELECT id, name, hair_color, created_at FROM users")
+                .fetch_one(self)
         })
     }
 
     fn fetch_last(&mut self) -> Result<Self::Entity, Self::Error> {
         let results = async_std::task::block_on({
-            sqlx::query_as::<_, User>("SELECT id, name, hair_color, created_at FROM users").fetch_all(self)
+            sqlx::query_as::<_, User>("SELECT id, name, hair_color, created_at FROM users")
+                .fetch_all(self)
         })?;
 
         Ok(results[9_999].clone())
+    }
+
+    fn insert(&mut self, n: usize) -> Result<(), Self::Error> {
+        if n == 0 {
+            return Ok(());
+        }
+
+        let mut query = String::from("INSERT INTO users (name, hair_color) VALUES");
+        for x in 0..n {
+            query += &format!(
+                "{} (${}, ${})",
+                if x == 0 { "" } else { "," },
+                2 * x + 1,
+                2 * x + 2,
+            );
+        }
+
+        let mut query = sqlx::query(&query);
+
+        for x in 0..n {
+            query = query
+                .bind(format!("User {}", x))
+                .bind(format!("hair color {}", x));
+        }
+
+        async_std::task::block_on({ query.execute(self) })?;
+        Ok(())
     }
 }
 

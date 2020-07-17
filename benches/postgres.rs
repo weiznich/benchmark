@@ -71,6 +71,28 @@ impl crate::Client for postgres::Client {
 
         Ok(result)
     }
+
+    fn insert(&mut self, n: usize) -> Result<(), Self::Error> {
+        if n == 0 {
+            return Ok(());
+        }
+
+        let mut query = String::from("INSERT INTO users (name, hair_color) VALUES");
+        let mut params = Vec::with_capacity(2 * n);
+        for x in 0..n {
+            query += &format!(
+                "{} (${}, ${})",
+                if x == 0 { "" } else { "," },
+                2 * x + 1,
+                2 * x + 2,
+            );
+            params.push(format!("User {}", x));
+            params.push(format!("hair color {}", x));
+        }
+        let params = params.iter().map(|p| p as _).collect::<Vec<_>>();
+        self.execute(&query as &str, &params)?;
+        Ok(())
+    }
 }
 
 crate::bench! {postgres::Client}

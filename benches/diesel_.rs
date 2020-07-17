@@ -25,7 +25,8 @@ diesel::table! {
     }
 }
 
-#[derive(Clone, diesel::Queryable)]
+#[derive(Clone, diesel::Queryable, diesel::QueryableByName)]
+#[table_name = "users"]
 pub struct User {
     id: i32,
     name: String,
@@ -71,9 +72,9 @@ impl crate::Client for diesel::pg::PgConnection {
     }
 
     fn fetch_first(&mut self) -> Result<Self::Entity, Self::Error> {
-        let results = users::table.load::<User>(self)?;
+        let result = users::table.first::<User>(self).optional()?;
 
-        Ok(results.first().unwrap().clone())
+        Ok(result.unwrap().clone())
     }
 
     fn fetch_last(&mut self) -> Result<Self::Entity, Self::Error> {
@@ -84,3 +85,41 @@ impl crate::Client for diesel::pg::PgConnection {
 }
 
 crate::bench! {diesel::pg::PgConnection}
+
+pub fn query_all_by_name(b: &mut criterion::Bencher) -> Result<(), diesel::result::Error> {
+    let mut client = diesel::pg::PgConnection::setup(10_000)?;
+
+    b.iter(|| {
+        diesel::sql_query("select id, name, hair_color, created_at from users")
+            .load::<User>(&client)
+            .unwrap()
+    });
+
+    client.tear_down()
+}
+
+pub fn query_one_by_name(b: &mut criterion::Bencher) -> Result<(), diesel::result::Error> {
+    let mut client = diesel::pg::PgConnection::setup(1)?;
+
+    b.iter(|| {
+        diesel::sql_query("select id, name, hair_color, created_at from users")
+            .load::<User>(&client)
+            .unwrap()
+    });
+
+    client.tear_down()
+}
+
+pub fn query_null(b: &mut criterion::Bencher) -> Result<(), diesel::result::Error> {
+    use diesel::sql_types::{Integer, Nullable};
+
+    let mut client = diesel::pg::PgConnection::setup(0)?;
+
+    b.iter(|| {
+        diesel::select(diesel::dsl::sql::<Nullable<Integer>>("NULL"))
+            .load::<Option<i32>>(&client)
+            .unwrap()
+    });
+
+    client.tear_down()
+}
